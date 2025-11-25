@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Neon Space Defender & Atenea Vault</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+code
+Code
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          'neon-blue': '#00f3ff',
+          'neon-pink': '#ff00ff',
+          'neon-green': '#00ff9d',
+          'neon-gold': '#ffd700',
+          'app-bg': '#0f172a',     
+          'app-card': '#1e293b',   
+          'app-accent': '#6366f1', 
+          'app-danger': '#ef4444',
+        },
+        fontFamily: {
+          game: ['Orbitron', 'sans-serif'],
+          ui: ['Inter', 'sans-serif'],
+        },
+        animation: {
+          'slide-up': 'slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+          'fade-in': 'fadeIn 0.2s ease-out forwards',
+          'pulse-fast': 'pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        },
+        keyframes: {
+          slideUp: {
+            '0%': { transform: 'translateY(100%)' },
+            '100%': { transform: 'translateY(0)' },
+          },
+          fadeIn: {
+            '0%': { opacity: '0' },
+            '100%': { opacity: '1' },
+          }
+        }
+      }
+    }
+  }
+</script>
+
+<style>
+    body { background: #020617; font-family: 'Inter', sans-serif; overflow: hidden; user-select: none; -webkit-tap-highlight-color: transparent; }
+    .scanlines { background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.1) 50%, rgba(0,0,0,0.1)); background-size: 100% 3px; pointer-events: none; }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .text-glow { text-shadow: 0 0 10px currentColor; }
+    .clip-path-polygon { clip-path: polygon(10% 0, 100% 0, 100% 80%, 90% 100%, 0 100%, 0 20%); }
+</style>
+</head>
+<body class="h-screen w-screen flex items-center justify-center p-4 relative">
+code
+Code
+<!-- ================= GUÍA PASO A PASO (SOLO ESCRITORIO) ================= -->
+<div class="hidden xl:flex flex-col absolute left-10 top-1/2 -translate-y-1/2 w-72 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6 text-white shadow-2xl z-0 animate-fade-in">
+    <h3 class="font-ui font-bold text-lg mb-2 text-neon-blue border-b border-white/10 pb-2">DEMO HACKATHON</h3>
+    <p class="text-xs text-gray-400 mb-6">Sigue estos pasos para testear la app:</p>
+    
+    <div class="space-y-6 relative pl-2">
+        <div class="absolute left-[19px] top-2 bottom-2 w-0.5 bg-white/10 -z-10"></div>
+
+        <div class="flex gap-4 items-center">
+            <div class="w-8 h-8 rounded-full bg-black border border-neon-blue/50 flex items-center justify-center shrink-0 font-game text-neon-blue text-xs shadow-[0_0_10px_rgba(0,243,255,0.3)]">1</div>
+            <div class="text-xs text-gray-300">Juega un poco a <b class="text-white">Neon Storm</b>.</div>
+        </div>
+
+        <div class="flex gap-4 items-center">
+            <div class="w-8 h-8 rounded-full bg-black border border-white/20 flex items-center justify-center shrink-0 text-white text-xs">2</div>
+            <div class="text-xs text-gray-300">Dale al botón de <b class="text-white">PAUSA</b> (arriba derecha).</div>
+        </div>
+
+        <div class="flex gap-4 items-center">
+            <div class="w-8 h-8 rounded-full bg-black border border-neon-pink/50 flex items-center justify-center shrink-0 text-neon-pink font-mono text-xs shadow-[0_0_10px_rgba(255,0,255,0.3)]">3</div>
+            <div class="text-xs text-gray-300">
+                En "Promo Code" escribe el PIN:
+                <div class="font-mono text-neon-pink font-bold mt-1 text-lg">1111</div>
+            </div>
+        </div>
+        
+         <div class="flex gap-4 items-center">
+            <div class="w-8 h-8 rounded-full bg-app-accent flex items-center justify-center shrink-0 text-white text-xs shadow-lg">4</div>
+            <div class="text-xs text-gray-300">Accede a la bóveda oculta <b class="text-app-accent">Atenea</b>.</div>
+        </div>
+    </div>
+</div>
+
+<!-- MARCO DEL TELÉFONO -->
+<div id="device-frame" class="relative shadow-2xl bg-black overflow-hidden ring-4 ring-black/50
+    w-full h-full max-w-sm max-h-[850px]
+    sm:h-[90vh] sm:w-[400px] sm:rounded-[2.5rem] sm:border-[8px] sm:border-[#1a1a1a]
+    transition-transform duration-300 z-10">
+
+    <!-- STATUS BAR -->
+    <div class="absolute top-0 left-0 right-0 h-8 z-50 flex justify-between px-6 items-center text-white text-[10px] pointer-events-none select-none mix-blend-difference font-ui font-medium">
+        <span id="clock">12:00</span>
+        <div class="flex items-center gap-1">
+            <span>5G</span>
+            <div class="w-5 h-2.5 border border-white/60 rounded-[1px] relative"><div class="absolute inset-0.5 bg-white w-[80%]"></div></div>
+        </div>
+    </div>
+
+    <!-- ================= CAPA DE JUEGO (NEON DEFENDER) ================= -->
+    <div id="game-layer" class="absolute inset-0 z-10 bg-black">
+        <div class="scanlines absolute inset-0 z-20"></div>
+        
+        <!-- HUD -->
+        <div class="absolute top-8 left-0 w-full p-4 flex justify-between items-start z-30 pointer-events-none">
+            <div class="flex flex-col gap-1">
+                <div class="flex gap-1 h-6 items-center" id="lives-container"></div>
+                <div class="flex flex-col">
+                    <div class="text-neon-blue font-game text-2xl text-glow leading-none" id="score-display">0</div>
+                    <div class="text-xs font-game text-neon-green mt-1">LVL <span id="level-display">1</span></div>
+                </div>
+            </div>
+            <button onclick="game.pauseGame()" class="pointer-events-auto bg-white/10 hover:bg-white/20 p-2 rounded-full border border-white/20 backdrop-blur-sm active:scale-95 transition-transform">
+                <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            </button>
+        </div>
+
+        <!-- Messages -->
+        <div id="game-message" class="absolute top-1/3 left-0 w-full text-center z-30 pointer-events-none transition-all duration-500 opacity-0 transform scale-50">
+            <h2 id="msg-title" class="font-game text-4xl text-neon-green text-glow mb-2">LEVEL UP</h2>
+            <p id="msg-sub" class="font-ui text-white font-bold tracking-widest text-sm">SPEED INCREASED</p>
+        </div>
+
+        <!-- START SCREEN -->
+        <div id="start-screen" class="absolute inset-0 flex flex-col items-center justify-center z-40 bg-black/90 backdrop-blur-sm">
+            <div class="relative mb-6">
+                <div class="absolute -inset-4 bg-neon-blue/20 blur-xl rounded-full animate-pulse"></div>
+                <h1 class="relative font-game text-5xl text-transparent bg-clip-text bg-gradient-to-b from-white to-neon-blue text-center italic font-black transform -skew-x-12">NEON<br>STORM</h1>
+            </div>
+            <div class="text-[10px] text-gray-500 font-game mb-8 tracking-widest">HIGH SCORE: <span id="high-score-display" class="text-neon-gold">0</span></div>
+            
+            <div class="flex flex-col gap-4 w-48">
+                <button onclick="game.start()" class="bg-neon-blue text-black font-game font-bold py-3 px-6 rounded hover:bg-white transition-colors clip-path-polygon">START MISSION</button>
+                <button onclick="game.openHangar('start')" class="border border-white/20 text-white font-game text-xs py-3 px-6 rounded hover:bg-white/10 transition-colors flex items-center justify-center gap-2">
+                    <span>HANGAR / SKINS</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- HANGAR (SKINS) MENU -->
+        <div id="hangar-menu" class="absolute inset-0 flex flex-col items-center z-50 bg-black/95 backdrop-blur-xl hidden">
+            <div class="w-full p-6 pt-12 border-b border-white/10 flex justify-between items-center">
+                <h2 class="font-game text-2xl text-white text-glow">HANGAR</h2>
+                <button onclick="game.closeHangar()" class="text-gray-400 hover:text-white font-game text-sm">BACK</button>
+            </div>
+            <div class="p-6 w-full grid grid-cols-1 gap-4 overflow-y-auto no-scrollbar" id="skins-list">
+                <!-- Skins generated by JS -->
+            </div>
+        </div>
+
+        <!-- GAME OVER SCREEN -->
+        <div id="game-over-screen" class="absolute inset-0 flex flex-col items-center justify-center z-40 bg-red-950/90 backdrop-blur-md hidden opacity-0 transition-opacity duration-500">
+            <h2 class="font-game text-4xl text-white text-glow mb-2 tracking-widest">GAME OVER</h2>
+            <div class="text-xs text-red-300 uppercase tracking-widest mb-4">Puntuación Final</div>
+            <div id="final-score" class="text-6xl font-game text-white mb-8 text-glow">0</div>
+            <button onclick="game.restart()" class="bg-white text-black hover:bg-neon-blue hover:text-white px-8 py-4 rounded-full font-bold font-game shadow-[0_0_20px_rgba(255,255,255,0.3)] transition-all transform hover:scale-105">RETRY</button>
+        </div>
+
+        <canvas id="gameCanvas" class="block w-full h-full"></canvas>
+        
+        <!-- MENÚ PAUSA (PUERTA TRASERA) -->
+        <div id="pause-menu" class="absolute inset-0 z-40 hidden flex-col items-center justify-center bg-black/95 backdrop-blur-xl p-8">
+            <h2 class="font-game text-3xl text-white mb-2 text-glow italic">PAUSED</h2>
+            <div class="w-16 h-1 bg-neon-blue mb-8"></div>
+            
+            <div class="w-full max-w-[240px] space-y-3 mb-8">
+                <button onclick="game.resumeGame()" class="w-full py-4 bg-transparent border border-neon-blue text-neon-blue font-game font-bold text-sm hover:bg-neon-blue hover:text-black transition-all clip-path-polygon">RESUME</button>
+                <button onclick="game.openHangar('pause')" class="w-full py-3 bg-transparent border border-white/10 text-white font-game text-xs hover:bg-white/10 transition-all flex justify-center items-center gap-2">SKINS / SHOP <span class="text-neon-gold text-[10px]">★</span></button>
+                <button onclick="game.restart()" class="w-full py-3 bg-transparent border border-white/20 text-gray-400 font-game font-bold text-xs hover:border-red-500 hover:text-red-500 transition-all">RESTART</button>
+            </div>
+            
+            <!-- INPUT SECRETO -->
+            <div class="w-full mt-4 pt-6 border-t border-gray-800 relative">
+                <label class="block text-center text-[10px] text-gray-500 font-game uppercase mb-3 tracking-widest">PROMO CODE</label>
+                <div class="flex justify-center gap-2">
+                    <input type="text" id="secret-code" class="bg-gray-900 border border-gray-700 rounded-lg p-3 w-40 text-center text-white font-mono text-lg tracking-widest focus:border-neon-pink outline-none placeholder-gray-800 transition-all uppercase" placeholder="****">
+                    <button onclick="app.checkCode()" class="bg-gray-800 text-white px-4 rounded-lg font-bold border border-gray-700 hover:bg-neon-pink hover:text-black hover:border-neon-pink transition-colors font-game">OK</button>
+                </div>
+                 <p id="code-feedback" class="text-center text-[10px] h-4 mt-2 font-game"></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= ATENEA (APP SEGURA PROFESIONAL) ================= -->
+    <div id="atenea-layer" class="absolute inset-0 z-50 hidden flex-col bg-app-bg font-ui">
+        
+        <!-- Header Profesional -->
+        <header class="bg-app-card/80 backdrop-blur-lg border-b border-white/5 p-4 pt-10 flex justify-between items-center z-20 sticky top-0 shadow-lg">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                    <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                </div>
+                <div>
+                    <h1 class="font-bold text-white text-base">Atenea Vault</h1>
+                    <p class="text-[10px] text-emerald-400 font-medium flex items-center gap-1.5">
+                        <span class="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
+                        Nube Segura Activa
+                    </p>
+                </div>
+            </div>
+            <button onclick="app.panic()" class="group flex items-center gap-2 bg-red-500/10 hover:bg-red-500/20 px-3 py-1.5 rounded-full border border-red-500/30 transition-all">
+                <span class="text-[10px] font-bold text-red-400 group-hover:text-red-300 uppercase tracking-wide">Salir</span>
+                <svg class="w-4 h-4 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+            </button>
+        </header>
+
+        <!-- Contenido Principal -->
+        <div id="main-content" class="flex-1 overflow-y-auto p-5 relative no-scrollbar pb-24">
+            
+            <!-- Tab: Dashboard / Evidencias -->
+            <div id="tab-dashboard" class="animate-fade-in space-y-6">
+                
+                <!-- SOS Section -->
+                <div class="bg-gradient-to-br from-red-900/40 to-red-950/40 border border-red-500/20 rounded-2xl p-5 relative overflow-hidden">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <h3 class="text-white font-bold text-lg">Modo Emergencia</h3>
+                            <p class="text-xs text-red-200/70">Manten pulsado para ubicación silenciosa</p>
+                        </div>
+                        <div class="bg-red-500/20 p-2 rounded-full">
+                            <svg class="w-5 h-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                        </div>
+                    </div>
+                    <button id="sos-btn" 
+                            onmousedown="app.startSOS()" onmouseup="app.cancelSOS()" onmouseleave="app.cancelSOS()" 
+                            ontouchstart="app.startSOS()" ontouchend="app.cancelSOS()"
+                            class="w-full bg-red-600 active:bg-red-700 h-14 rounded-xl flex items-center justify-center relative overflow-hidden transition-all shadow-lg shadow-red-900/20 group select-none">
+                        <div id="sos-progress" class="absolute left-0 top-0 bottom-0 bg-white/30 w-0 transition-all duration-[2000ms] ease-linear"></div>
+                        <span class="relative z-10 font-bold text-white tracking-widest group-active:scale-95 transition-transform" id="sos-text">MANTENER PULSADO</span>
+                    </button>
+                </div>
+
+                <!-- Quick Actions Grid -->
+                <div>
+                    <h3 class="text-gray-400 text-xs font-bold uppercase tracking-wider mb-3 ml-1">Recolección Segura</h3>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button onclick="app.openCamera()" class="bg-app-card hover:bg-white/5 border border-white/5 p-4 rounded-xl flex flex-col items-center gap-3 transition-all group">
+                            <div class="w-12 h-12 rounded-full bg-blue-500/10 text-blue-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                            </div>
+                            <span class="text-xs font-semibold text-gray-300">Foto / Video</span>
+                        </button>
+                        <button onclick="app.openAudio()" class="bg-app-card hover:bg-white/5 border border-white/5 p-4 rounded-xl flex flex-col items-center gap-3 transition-all group">
+                            <div class="w-12 h-12 rounded-full bg-pink-500/10 text-pink-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
+                            </div>
+                            <span class="text-xs font-semibold text-gray-300">Audio Oculto</span>
+                        </button>
+                        <button onclick="app.showEvidenceForm()" class="col-span-2 bg-app-card hover:bg-white/5 border border-white/5 p-4 rounded-xl flex items-center justify-center gap-3 transition-all">
+                            <svg class="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                            <span class="text-xs font-semibold text-gray-300">Nueva Nota de Texto</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Recent Activity -->
+                <div>
+                    <div class="flex justify-between items-center mb-3 ml-1">
+                         <h3 class="text-gray-400 text-xs font-bold uppercase tracking-wider">Bóveda Reciente</h3>
+                         <button onclick="app.clearVault()" class="text-[10px] text-red-400 hover:text-red-300">Borrar Local</button>
+                    </div>
+                    <div id="evidence-list" class="space-y-3"></div>
+                    <div id="empty-msg" class="text-center py-10 opacity-40">
+                        <svg class="w-12 h-12 mx-auto text-gray-500 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                        <p class="text-xs text-gray-400">Sin archivos recientes</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Help -->
+            <div id="tab-help" class="hidden animate-fade-in space-y-4">
+                <h3 class="text-white font-bold text-xl mb-2">Ayuda Inmediata</h3>
+                <p class="text-gray-400 text-sm mb-4">Estas llamadas simulan ser reales pero no conectan. Sirven para disimular o practicar.</p>
+                
+                <div onclick="app.fakeCall('112', 'Emergencias')" class="bg-app-card p-5 rounded-xl border border-white/5 flex justify-between items-center active:bg-white/5 cursor-pointer shadow-lg shadow-black/20">
+                    <div class="flex items-center gap-4">
+                        <div class="bg-red-500/20 w-12 h-12 rounded-full flex items-center justify-center text-red-500 font-bold text-xl">
+                            <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
+                        </div>
+                        <div>
+                            <div class="font-bold text-white text-lg">Emergencias</div>
+                            <div class="text-xs text-gray-400">Policía / Ambulancia</div>
+                        </div>
+                    </div>
+                    <div class="text-white font-mono font-bold text-xl">112</div>
+                </div>
+
+                <div onclick="app.fakeCall('016', 'Atención Víctimas')" class="bg-app-card p-5 rounded-xl border border-white/5 flex justify-between items-center active:bg-white/5 cursor-pointer shadow-lg shadow-black/20">
+                    <div class="flex items-center gap-4">
+                        <div class="bg-purple-500/20 w-12 h-12 rounded-full flex items-center justify-center text-purple-500 font-bold text-xl">
+                            <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+                        </div>
+                        <div>
+                            <div class="font-bold text-white text-lg">016</div>
+                            <div class="text-xs text-gray-400">No deja rastro en factura</div>
+                        </div>
+                    </div>
+                    <div class="text-white font-mono font-bold text-xl">016</div>
+                </div>
+            </div>
+
+            <!-- Tab: Settings (FIXED LAYOUT) -->
+            <div id="tab-settings" class="hidden animate-fade-in">
+                <h3 class="text-white font-bold text-xl mb-6">Configuración de Bóveda</h3>
+                
+                <div class="bg-app-card p-6 rounded-xl border border-white/5 mb-6">
+                    <label class="block text-gray-400 text-xs uppercase font-bold mb-4">Código de Acceso (PIN)</label>
+                    <!-- FIX: Flex-wrap para móviles pequeños -->
+                    <div class="flex flex-col sm:flex-row gap-3">
+                        <input type="tel" id="new-pin-input" maxlength="4" placeholder="Nuevo PIN" class="w-full sm:flex-1 bg-black/30 border border-gray-600 rounded-lg px-4 py-3 text-white text-center font-mono tracking-[0.5em] focus:border-indigo-500 outline-none transition-colors">
+                        <button onclick="app.changePin()" class="w-full sm:w-auto bg-indigo-600 active:bg-indigo-700 px-6 py-3 rounded-lg text-white font-bold text-sm transition-colors whitespace-nowrap">GUARDAR</button>
+                    </div>
+                    <p id="pin-msg" class="text-[10px] mt-3 h-4 text-center text-emerald-400"></p>
+                </div>
+
+                <div class="bg-app-card p-6 rounded-xl border border-white/5">
+                    <h4 class="text-white font-bold text-sm mb-2">Acerca de Atenea</h4>
+                    <p class="text-xs text-gray-400 leading-relaxed">Esta aplicación está diseñada para parecer un juego simple. Todos los datos se almacenan encriptados localmente y pueden ser borrados instantáneamente con el botón de pánico.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Navigation -->
+        <div class="bg-app-card/90 backdrop-blur border-t border-white/5 pb-6 pt-2 px-6 flex justify-between items-center z-20 sticky bottom-0">
+            <button onclick="app.switchTab('dashboard')" id="nav-dashboard" class="p-2 text-app-accent flex flex-col items-center gap-1 transition-colors w-16">
+                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
+                <span class="text-[10px] font-medium">Inicio</span>
+            </button>
+            <button onclick="app.switchTab('help')" id="nav-help" class="p-2 text-gray-500 flex flex-col items-center gap-1 transition-colors w-16">
+                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
+                <span class="text-[10px] font-medium">Ayuda</span>
+            </button>
+            <button onclick="app.switchTab('settings')" id="nav-settings" class="p-2 text-gray-500 flex flex-col items-center gap-1 transition-colors w-16">
+                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                <span class="text-[10px] font-medium">Ajustes</span>
+            </button>
+        </div>
+
+        <!-- MODALES & UTILITIES -->
+        
+        <div id="evidence-modal" class="absolute inset-0 bg-black/80 backdrop-blur-sm z-30 hidden items-end justify-center">
+            <div class="bg-app-card w-full h-[85%] rounded-t-3xl p-6 animate-slide-up border-t border-white/10 shadow-2xl flex flex-col pb-10">
+                <div class="flex justify-between mb-6 items-center">
+                    <h3 class="font-bold text-white text-lg">Nueva Nota</h3>
+                    <button onclick="app.hideEvidenceForm()" class="bg-white/10 p-2 rounded-full text-gray-400 hover:bg-white/20"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button>
+                </div>
+                <textarea id="ev-desc" class="w-full flex-1 bg-black/30 border border-white/10 rounded-2xl p-5 text-white text-base focus:border-indigo-500 outline-none resize-none mb-6 font-ui" placeholder="Escribe detalles aquí..."></textarea>
+                <button onclick="app.saveEvidence('TEXTO')" class="w-full bg-indigo-600 active:bg-indigo-700 py-4 rounded-xl font-bold text-white text-sm tracking-wide shadow-lg shadow-indigo-500/30 transition-all">GUARDAR EN BÓVEDA</button>
+            </div>
+        </div>
+        
+        <div id="camera-ui" class="absolute inset-0 bg-black z-50 hidden flex-col">
+            <div class="absolute top-0 left-0 right-0 p-6 flex justify-between z-10 bg-gradient-to-b from-black/80 to-transparent">
+                <span class="text-white font-mono text-xs bg-red-600 px-2 py-0.5 rounded animate-pulse">● REC</span>
+            </div>
+            <div class="flex-1 bg-gray-800 relative overflow-hidden flex items-center justify-center">
+                <p class="text-gray-500 text-xs z-10">Simulador de Cámara Activo</p>
+                <div class="absolute inset-10 border border-white/20 rounded-lg"><div class="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-white"></div><div class="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-white"></div><div class="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-white"></div><div class="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-white"></div></div>
+            </div>
+            <div class="h-32 bg-black flex items-center justify-around px-8">
+                <button onclick="document.getElementById('camera-ui').classList.add('hidden')" class="text-white text-sm font-medium">Cancelar</button>
+                <button onclick="app.saveEvidence('IMAGEN')" class="w-16 h-16 rounded-full border-4 border-white flex items-center justify-center"><div class="w-12 h-12 bg-white rounded-full active:scale-90 transition-transform"></div></button>
+                <button class="w-10 h-10 rounded-full bg-gray-800 bg-opacity-50 flex items-center justify-center"><svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg></button>
+            </div>
+        </div>
+
+        <div id="audio-ui" class="absolute inset-0 bg-black/95 backdrop-blur-xl z-50 hidden flex-col items-center justify-center p-8">
+            <div class="w-24 h-24 rounded-full bg-red-500/10 flex items-center justify-center mb-8 relative">
+                <div class="absolute inset-0 bg-red-500/20 rounded-full animate-ping"></div>
+                <svg class="w-10 h-10 text-red-500 relative z-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
+            </div>
+            <div class="text-white font-mono text-5xl mb-2 font-light" id="audio-timer">00:00</div>
+            <div class="text-gray-500 text-sm mb-12 uppercase tracking-widest">Grabando Audio</div>
+            <div class="flex gap-4 w-full">
+                <button onclick="document.getElementById('audio-ui').classList.add('hidden')" class="flex-1 py-4 text-gray-400 bg-gray-800 rounded-xl font-bold text-sm">CANCELAR</button>
+                <button onclick="app.saveEvidence('AUDIO')" class="flex-1 py-4 bg-red-600 text-white rounded-xl font-bold text-sm shadow-lg shadow-red-600/30">GUARDAR</button>
+            </div>
+        </div>
+
+        <!-- Call UI (Realistic & Active) -->
+        <div id="call-ui" class="absolute inset-0 bg-gray-900 z-50 hidden flex-col items-center pt-24 pb-12 bg-cover bg-center" style="background-image: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.8));">
+            <div class="flex-1 flex flex-col items-center w-full">
+                <div class="w-24 h-24 rounded-full bg-gray-600 flex items-center justify-center mb-6">
+                    <svg class="w-12 h-12 text-white" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" /></svg>
+                </div>
+                <h2 class="text-3xl text-white font-medium mb-2" id="call-name">Emergencias</h2>
+                <p class="text-lg text-gray-300 font-light" id="call-status">Llamando...</p>
+            </div>
+            <div class="w-full px-12 grid grid-cols-3 gap-6 mb-12">
+                 <div class="flex flex-col items-center gap-2"><div class="w-14 h-14 rounded-full bg-white/10 flex items-center justify-center"><svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/></svg></div><span class="text-white text-xs">Silenciar</span></div>
+                 <div class="flex flex-col items-center gap-2"><div class="w-14 h-14 rounded-full bg-white/10 flex items-center justify-center"><svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg></div><span class="text-white text-xs">Teclado</span></div>
+                 <div class="flex flex-col items-center gap-2"><div class="w-14 h-14 rounded-full bg-white/10 flex items-center justify-center"><svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/></svg></div><span class="text-white text-xs">Altavoz</span></div>
+            </div>
+            <button onclick="app.endCall()" class="bg-red-600 w-16 h-16 rounded-full flex items-center justify-center text-white shadow-lg shadow-red-600/40 active:scale-95 transition-transform">
+                <svg class="w-8 h-8 transform rotate-[135deg]" fill="currentColor" viewBox="0 0 20 20"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"/></svg>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- LOGIC -->
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const container = document.getElementById('game-layer');
+
+    function resize() {
+        const rect = container.getBoundingClientRect();
+        canvas.width = rect.width;
+        canvas.height = rect.height;
+    }
+    window.addEventListener('resize', resize);
+    setTimeout(resize, 100);
+
+    // Clases de Juego
+    class Star { 
+        constructor() { this.reset(); this.y = Math.random() * canvas.height; } 
+        reset() { this.x = Math.random() * canvas.width; this.y = -10; this.size = Math.random() * 2; this.speed = 0.5 + Math.random() * 2; this.alpha = 0.3 + Math.random() * 0.7; } 
+        update(speedMult) { this.y += this.speed * speedMult; if (this.y > canvas.height) this.reset(); } 
+        draw() { ctx.fillStyle = `rgba(255, 255, 255, ${this.alpha})`; ctx.fillRect(this.x, this.y, this.size, this.size); } 
+    }
+
+    class Particle { 
+        constructor(x, y, color, type = 'normal') { 
+            this.x = x; this.y = y; this.color = color; 
+            this.size = Math.random() * 3 + 2; 
+            this.speedX = Math.random() * 6 - 3; 
+            this.speedY = Math.random() * 6 - 3; 
+            this.life = 1; this.type = type;
+        } 
+        update() { 
+            this.x += this.speedX; this.y += this.speedY; 
+            this.life -= 0.04; this.size *= 0.96; 
+            if(this.type === 'shield') this.speedY -= 0.1;
+        } 
+        draw() { 
+            ctx.globalAlpha = Math.max(0, this.life); ctx.fillStyle = this.color; 
+            ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1; 
+        } 
+    }
+
+    const SKINS = [
+        { id: 'default', name: 'INTERCEPTOR', scoreReq: 0, color: '#00f3ff', desc: 'Nave estándar.' },
+        { id: 'crimson', name: 'RED PHANTOM', scoreReq: 2000, color: '#ff0055', desc: 'Combate agresivo.' },
+        { id: 'golden', name: 'GOLDEN AGE', scoreReq: 5000, color: '#ffd700', desc: 'Edición Élite.' }
+    ];
+
+    /* ================= GAME ENGINE ================= */
+    const Game = {
+        active: false, paused: false, score: 0, level: 1, highScore: 0, fromPause: false,
+        player: { x: 0, y: 0, hp: 3, shield: false, immune: false, skinId: 'default' }, 
+        bullets: [], enemies: [], particles: [], stars: [], frames: 0,
+        
+        init() {
+            this.highScore = parseInt(localStorage.getItem('game_highscore') || '0');
+            this.player.skinId = localStorage.getItem('game_skin') || 'default';
+            document.getElementById('high-score-display').innerText = this.highScore;
+            for(let i=0; i<40; i++) this.stars.push(new Star());
+            
+            const handleInput = (clientX) => {
+                if (this.paused || !this.active) return;
+                const rect = canvas.getBoundingClientRect();
+                this.player.x = Math.max(15, Math.min(clientX - rect.left, canvas.width - 15));
+            };
+            container.addEventListener('mousemove', e => handleInput(e.clientX));
+            container.addEventListener('touchmove', e => handleInput(e.touches[0].clientX), {passive: false});
+            
+            setInterval(() => {
+                const now = new Date();
+                document.getElementById('clock').innerText = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            }, 1000);
+        },
+        
+        start() {
+            resize();
+            this.active = true; this.paused = false; this.score = 0; this.level = 1;
+            this.player.y = canvas.height - 80; this.player.hp = 3; this.player.shield = false; this.player.immune = false;
+            this.bullets = []; this.enemies = []; this.particles = []; this.frames = 0;
+            
+            document.getElementById('start-screen').classList.add('hidden');
+            document.getElementById('hangar-menu').classList.add('hidden');
+            document.getElementById('pause-menu').classList.add('hidden');
+            document.getElementById('pause-menu').classList.remove('flex');
+            document.getElementById('game-over-screen').classList.add('hidden');
+            document.getElementById('game-over-screen').classList.remove('flex');
+            
+            this.updateUI(); this.loop();
+        },
+        
+        restart() { this.start(); },
+        
+        pauseGame() { 
+            if (!this.active) return; 
+            this.paused = true; 
+            document.getElementById('pause-menu').classList.remove('hidden'); 
+            document.getElementById('pause-menu').classList.add('flex'); 
+            document.getElementById('code-feedback').innerText = '';
+        },
+        
+        resumeGame() { 
+            this.paused = false; 
+            document.getElementById('pause-menu').classList.add('hidden'); 
+            document.getElementById('pause-menu').classList.remove('flex'); 
+            document.getElementById('secret-code').value = ''; 
+            this.loop(); 
+        },
+
+        openHangar(source) {
+            this.fromPause = (source === 'pause');
+            if(this.fromPause) {
+                document.getElementById('pause-menu').classList.add('hidden');
+                document.getElementById('pause-menu').classList.remove('flex');
+            }
+            document.getElementById('hangar-menu').classList.remove('hidden');
+            
+            const list = document.getElementById('skins-list');
+            list.innerHTML = '';
+            SKINS.forEach(skin => {
+                const isUnlocked = this.highScore >= skin.scoreReq;
+                const isEquipped = this.player.skinId === skin.id;
+                const bgClass = isEquipped ? 'bg-white/10 border-neon-blue' : 'bg-white/5 border-white/10';
+                const btnHtml = isEquipped 
+                    ? `<span class="text-neon-blue font-bold text-xs">EQUIPADO</span>` 
+                    : (isUnlocked 
+                        ? `<button onclick="game.equipSkin('${skin.id}')" class="bg-white text-black text-xs font-bold px-4 py-2 rounded hover:bg-neon-blue">EQUIPAR</button>` 
+                        : `<div class="flex flex-col items-end"><span class="text-xs text-gray-500">BLOQUEADO</span><span class="text-[10px] text-neon-pink">REQ: ${skin.scoreReq} PTS</span></div>`);
+
+                list.innerHTML += `
+                    <div class="flex items-center justify-between p-4 rounded-xl border ${bgClass} transition-colors">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-lg bg-black/50 border border-white/10 flex items-center justify-center">
+                                <div class="w-6 h-6" style="background-color: ${skin.color}; clip-path: polygon(50% 0%, 0% 100%, 100% 100%);"></div>
+                            </div>
+                            <div><h3 class="font-game text-white text-sm ${isUnlocked ? '' : 'text-gray-500'}">${skin.name}</h3></div>
+                        </div>
+                        ${btnHtml}
+                    </div>
+                `;
+            });
+        },
+
+        closeHangar() {
+            document.getElementById('hangar-menu').classList.add('hidden');
+            if(this.fromPause) {
+                document.getElementById('pause-menu').classList.remove('hidden'); 
+                document.getElementById('pause-menu').classList.add('flex'); 
+            }
+        },
+
+        equipSkin(id) {
+            this.player.skinId = id;
+            localStorage.setItem('game_skin', id);
+            this.openHangar(this.fromPause ? 'pause' : 'start');
+        },
+
+        activateShield(duration) {
+            this.player.shield = true; this.player.immune = true; this.updateUI();
+            setTimeout(() => { this.player.shield = false; this.player.immune = false; this.updateUI(); }, duration);
+        },
+        
+        addLife() { if(this.player.hp < 5) { this.player.hp++; this.updateUI(); this.showMessage("VIDA EXTRA", "BONUS"); } },
+        addScore(points) { this.score += points; this.updateUI(); },
+
+        showMessage(title, sub) {
+            const el = document.getElementById('game-message');
+            document.getElementById('msg-title').innerText = title;
+            document.getElementById('msg-sub').innerText = sub;
+            el.style.opacity = '1'; el.style.transform = 'scale(1)';
+            setTimeout(() => { el.style.opacity = '0'; el.style.transform = 'scale(0.5)'; }, 2000);
+        },
+
+        checkLevelUp() {
+            const newLevel = Math.floor(this.score / 3000) + 1;
+            if (newLevel > this.level) {
+                this.level = newLevel;
+                this.showMessage("LEVEL UP!", `NIVEL ${this.level}`);
+                this.updateUI();
+            }
+        },
+
+        gameOver() { 
+            this.active = false; 
+            if(this.score > this.highScore) {
+                this.highScore = this.score;
+                localStorage.setItem('game_highscore', this.highScore);
+                document.getElementById('high-score-display').innerText = this.highScore;
+            }
+            const go = document.getElementById('game-over-screen'); 
+            go.classList.remove('hidden'); go.classList.add('flex'); 
+            document.getElementById('final-score').innerText = this.score; 
+            setTimeout(() => go.style.opacity = '1', 50); 
+        },
+        
+        updateUI() {
+            document.getElementById('score-display').innerText = this.score;
+            document.getElementById('level-display').innerText = this.level;
+            const c = document.getElementById('lives-container'); c.innerHTML = '';
+            for(let i=0; i<this.player.hp; i++) c.innerHTML += `<svg class="w-5 h-5 text-neon-pink drop-shadow-[0_0_5px_rgba(255,0,255,0.8)]" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd"/></svg>`;
+            if(this.player.shield) c.innerHTML += `<svg class="w-5 h-5 text-neon-blue animate-pulse" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 1.944A11.954 11.954 0 012.166 5C2.056 5.649 2 6.319 2 7c0 5.225 3.34 9.67 8 11.317C14.66 16.67 18 12.225 18 7c0-.682-.057-1.35-.166-2.001A11.954 11.954 0 0110 1.944zM11 14a1 1 0 11-2 0 1 1 0 012 0zm0-7a1 1 0 10-2 0v3a1 1 0 102 0V7z" clip-rule="evenodd"/></svg>`;
+        },
+
+        update() {
+            this.frames++; 
+            const rawSpeed = 1 + (this.level * 0.04);
+            const speedMult = Math.min(rawSpeed, 2.0); 
+
+            this.stars.forEach(s => s.update(speedMult));
+            const spawnRate = Math.max(15, 45 - (this.level * 2));
+            
+            if (this.frames % spawnRate === 0) {
+                const type = Math.random();
+                let color = '#ff0055'; let hp = 1; let size = 25;
+                if (this.level > 2 && type > 0.8) { color = '#00ff9d'; hp = 2; size = 30; } 
+                if (this.level > 4 && type > 0.9) { color = '#ffff00'; hp = 1; size = 15; } 
+
+                this.enemies.push({ x: Math.random() * (canvas.width - 25), y: -30, size: size, hp: hp, rotation: 0, speed: (2 + Math.random()) * speedMult, color: color });
+            }
+            
+            if (this.frames % 12 === 0) { 
+                 const skin = SKINS.find(s => s.id === this.player.skinId);
+                 this.bullets.push({ x: this.player.x, y: this.player.y - 20, color: skin.color });
+            }
+            
+            this.bullets.forEach((b, i) => { b.y -= 12; if (b.y < -10) this.bullets.splice(i, 1); }); 
+            
+            this.enemies.forEach((e, ei) => {
+                e.y += e.speed; e.rotation += 0.05;
+                if (e.y > canvas.height) { this.enemies.splice(ei, 1); this.score = Math.max(0, this.score - 50); this.updateUI(); }
+                
+                const dx = e.x - this.player.x, dy = e.y - this.player.y;
+                if (Math.sqrt(dx*dx + dy*dy) < (e.size/2 + 15)) {
+                    this.enemies.splice(ei, 1);
+                    if (!this.player.immune) { 
+                        if(this.player.shield) { for(let i=0; i<10; i++) this.particles.push(new Particle(this.player.x, this.player.y, '#00f3ff', 'shield')); }
+                        else { this.player.hp--; canvas.style.transform = 'translate(5px, 5px)'; setTimeout(() => canvas.style.transform = 'none', 50); }
+                    }
+                    for(let i=0; i<15; i++) this.particles.push(new Particle(e.x, e.y, '#ff0000'));
+                    this.updateUI();
+                    if (this.player.hp <= 0) this.gameOver();
+                }
+                
+                this.bullets.forEach((b, bi) => {
+                    if (Math.sqrt((b.x - e.x)**2 + (b.y - e.y)**2) < e.size/2 + 10) {
+                        this.bullets.splice(bi, 1); 
+                        e.hp--;
+                        if(e.hp <= 0) {
+                            this.enemies.splice(ei, 1); 
+                            this.score += (100 * this.level);
+                            this.checkLevelUp();
+                            this.updateUI();
+                            for(let i=0; i<10; i++) this.particles.push(new Particle(e.x, e.y, e.color));
+                        } else { e.y -= 5; for(let i=0; i<3; i++) this.particles.push(new Particle(e.x, e.y, '#fff')); }
+                    }
+                });
+            });
+            this.particles.forEach((p, i) => { p.update(); if (p.life <= 0) this.particles.splice(i, 1); });
+        },
+
+        draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            this.stars.forEach(s => s.draw());
+            
+            ctx.save(); ctx.translate(this.player.x, this.player.y);
+            if (this.player.shield) { ctx.beginPath(); ctx.arc(0, 0, 35, 0, Math.PI*2); ctx.strokeStyle = `rgba(0, 243, 255, ${0.5 + Math.sin(this.frames/5)*0.5})`; ctx.lineWidth = 2; ctx.stroke(); }
+            
+            const skin = SKINS.find(s => s.id === this.player.skinId);
+            ctx.fillStyle = skin.color; ctx.shadowBlur = 20; ctx.shadowColor = skin.color; ctx.beginPath(); 
+            if (this.player.skinId === 'crimson') { ctx.moveTo(0, -20); ctx.lineTo(10, 10); ctx.lineTo(15, 10); ctx.lineTo(20, 20); ctx.lineTo(0, 15); ctx.lineTo(-20, 20); ctx.lineTo(-15, 10); ctx.lineTo(-10, 10); } 
+            else if (this.player.skinId === 'golden') { ctx.moveTo(-20, 15); ctx.lineTo(-10, -10); ctx.lineTo(0, -25); ctx.lineTo(10, -10); ctx.lineTo(20, 15); ctx.lineTo(0, 20); } 
+            else { ctx.moveTo(0, -20); ctx.lineTo(15, 15); ctx.lineTo(0, 10); ctx.lineTo(-15, 15); }
+            ctx.closePath(); ctx.fill(); ctx.restore();
+            
+            this.bullets.forEach(b => { ctx.shadowBlur = 10; ctx.shadowColor = b.color; ctx.fillStyle = '#fff'; ctx.fillRect(b.x - 2, b.y, 4, 15); });
+            this.enemies.forEach(e => { 
+                ctx.save(); ctx.translate(e.x, e.y); ctx.rotate(e.rotation);
+                ctx.shadowBlur = 15; ctx.shadowColor = e.color; ctx.fillStyle = e.color; 
+                ctx.beginPath(); 
+                if(e.size > 25) { for (let i = 0; i < 6; i++) ctx.lineTo(e.size/1.5 * Math.cos(i * Math.PI / 3), e.size/1.5 * Math.sin(i * Math.PI / 3)); } 
+                else { ctx.moveTo(0, -e.size/2); ctx.lineTo(e.size/2, 0); ctx.lineTo(0, e.size/2); ctx.lineTo(-e.size/2, 0); }
+                ctx.closePath(); ctx.fill();
+                ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(0, 0, e.size/5, 0, Math.PI*2); ctx.fill();
+                ctx.restore();
+            });
+            this.particles.forEach(p => p.draw()); ctx.shadowBlur = 0;
+        },
+        loop() { if (this.paused || !this.active) return; this.update(); this.draw(); requestAnimationFrame(() => this.loop()); }
+    };
+    setTimeout(() => Game.init(), 100); window.game = Game;
+
+    /* ================= ATENEA APP LOGIC ================= */
+    const App = {
+        pin: '1111',
+        sosTimer: null,
+        callInterval: null,
+        
+        init() {
+            const s = localStorage.getItem('atenea_pin');
+            if(s) this.pin = s;
+            this.renderEvidences();
+        },
+
+        checkCode() {
+            const input = document.getElementById('secret-code');
+            const val = input.value.trim().toUpperCase();
+            
+            if (val === this.pin) {
+                document.getElementById('pause-menu').classList.add('hidden');
+                document.getElementById('pause-menu').classList.remove('flex');
+                document.getElementById('atenea-layer').classList.remove('hidden');
+                document.getElementById('atenea-layer').classList.add('flex');
+                input.value = '';
+                return;
+            }
+            
+            // Cheats de juego
+            let msg = ""; let ok = false;
+            switch(val) {
+                case 'VIDA': game.addLife(); msg = "CHEAT: +1 VIDA"; ok = true; break;
+                case 'ESCUDO': game.player.shield = true; game.updateUI(); msg = "CHEAT: ESCUDO"; ok = true; break;
+                case 'NEON': game.addScore(5000); game.checkLevelUp(); msg = "CHEAT: +5000 XP"; ok = true; break;
+            }
+            
+            if (ok) {
+                const fb = document.getElementById('code-feedback');
+                fb.innerText = msg; fb.className = "text-center text-[10px] h-4 mt-2 font-game text-neon-green animate-pulse";
+                setTimeout(() => { game.resumeGame(); if(val === 'ESCUDO') game.activateShield(5000); }, 1000);
+            } else {
+                input.classList.add('border-red-500', 'text-red-500');
+                setTimeout(() => input.classList.remove('border-red-500', 'text-red-500'), 500);
+            }
+        },
+
+        panic() {
+            document.getElementById('atenea-layer').classList.add('hidden');
+            document.getElementById('atenea-layer').classList.remove('flex');
+            this.hideEvidenceForm();
+            document.getElementById('camera-ui').classList.add('hidden');
+            document.getElementById('audio-ui').classList.add('hidden');
+            document.getElementById('call-ui').classList.add('hidden');
+            if(this.callInterval) clearInterval(this.callInterval);
+            this.switchTab('dashboard');
+            game.resumeGame();
+            game.activateShield(3000); // Protección al volver
+        },
+
+        switchTab(tabName) {
+            ['dashboard', 'help', 'settings'].forEach(t => {
+                document.getElementById(`tab-${t}`).classList.add('hidden');
+                const nav = document.getElementById(`nav-${t}`);
+                nav.classList.remove('text-app-accent');
+                nav.classList.add('text-gray-500');
+            });
+            document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+            const activeNav = document.getElementById(`nav-${tabName}`);
+            activeNav.classList.remove('text-gray-500');
+            activeNav.classList.add('text-app-accent');
+        },
+
+        // --- SOS LOGIC ---
+        startSOS() {
+            const bar = document.getElementById('sos-progress');
+            const txt = document.getElementById('sos-text');
+            bar.style.width = '0%';
+            setTimeout(() => { bar.style.width = '100%'; }, 50);
+
+            this.sosTimer = setTimeout(() => {
+                txt.innerText = 'UBICACIÓN ENVIADA';
+                document.getElementById('sos-btn').classList.replace('bg-red-600', 'bg-green-600');
+                setTimeout(() => {
+                    txt.innerText = 'MANTENER PULSADO';
+                    bar.style.width = '0%';
+                    document.getElementById('sos-btn').classList.replace('bg-green-600', 'bg-red-600');
+                }, 3000);
+            }, 2000); 
+        },
+
+        cancelSOS() {
+            clearTimeout(this.sosTimer);
+            document.getElementById('sos-progress').style.width = '0%';
+        },
+
+        // --- EVIDENCE LOGIC ---
+        showEvidenceForm() { document.getElementById('evidence-modal').classList.remove('hidden'); document.getElementById('evidence-modal').classList.add('flex'); },
+        hideEvidenceForm() { document.getElementById('evidence-modal').classList.add('hidden'); document.getElementById('evidence-modal').classList.remove('flex'); document.getElementById('ev-desc').value = ''; },
+        openCamera() { document.getElementById('camera-ui').classList.remove('hidden'); document.getElementById('camera-ui').classList.add('flex'); },
+        openAudio() {
+            document.getElementById('audio-ui').classList.remove('hidden'); document.getElementById('audio-ui').classList.add('flex');
+            let sec = 0; const t = document.getElementById('audio-timer');
+            this.audioInterval = setInterval(() => { sec++; t.innerText = `00:${sec < 10 ? '0'+sec : sec}`; }, 1000);
+        },
+        saveEvidence(type) {
+            let text = '';
+            if (type === 'TEXTO') text = document.getElementById('ev-desc').value;
+            if (type === 'IMAGEN') { text = 'Foto capturada'; document.getElementById('camera-ui').classList.add('hidden'); }
+            if (type === 'AUDIO') { text = 'Grabación de voz (00:04)'; document.getElementById('audio-ui').classList.add('hidden'); clearInterval(this.audioInterval); }
+            if(!text && type === 'TEXTO') return;
+
+            const current = JSON.parse(localStorage.getItem('atenea_evidences') || '[]');
+            current.push({ text, type, date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) });
+            localStorage.setItem('atenea_evidences', JSON.stringify(current));
+            this.renderEvidences(); this.hideEvidenceForm();
+        },
+        renderEvidences() {
+            const list = document.getElementById('evidence-list');
+            const stored = JSON.parse(localStorage.getItem('atenea_evidences') || '[]');
+            const empty = document.getElementById('empty-msg');
+            if (stored.length === 0) { empty.style.display = 'block'; list.innerHTML = ''; return; }
+            empty.style.display = 'none'; list.innerHTML = '';
+            stored.reverse().forEach(ev => {
+                let iconBg = ev.type === 'IMAGEN' ? 'bg-blue-500/20 text-blue-400' : (ev.type === 'AUDIO' ? 'bg-pink-500/20 text-pink-400' : 'bg-gray-700/50 text-gray-300');
+                let iconSvg = ev.type === 'IMAGEN' ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />' : (ev.type === 'AUDIO' ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />' : '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />');
+                list.innerHTML += `<div class="bg-app-card p-3 rounded-xl border border-white/5 flex gap-4 items-center animate-fade-in"><div class="${iconBg} w-10 h-10 rounded-lg flex items-center justify-center"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">${iconSvg}</svg></div><div class="flex-1 overflow-hidden"><div class="flex justify-between items-center mb-0.5"><span class="text-[10px] font-bold text-gray-500 uppercase tracking-wide">${ev.type}</span><span class="text-[10px] text-gray-500">${ev.date}</span></div><p class="text-sm text-gray-200 truncate font-medium">${ev.text}</p></div></div>`;
+            });
+        },
+        clearVault() {
+            if(confirm('¿Borrar historial local?')) { localStorage.removeItem('atenea_evidences'); this.renderEvidences(); }
+        },
+        
+        fakeCall(num, name) { 
+            const ui = document.getElementById('call-ui');
+            ui.classList.remove('hidden'); ui.classList.add('flex'); 
+            document.getElementById('call-name').innerText = name || num;
+            document.getElementById('call-status').innerText = 'Llamando...';
+            
+            // Realista timer logic
+            let seconds = 0;
+            if(this.callInterval) clearInterval(this.callInterval);
+            setTimeout(() => {
+                this.callInterval = setInterval(() => {
+                    seconds++;
+                    const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+                    const s = (seconds % 60).toString().padStart(2, '0');
+                    document.getElementById('call-status').innerText = `${m}:${s}`;
+                }, 1000);
+            }, 2000); // 2 seg para "conectar"
+        },
+
+        endCall() {
+            document.getElementById('call-ui').classList.add('hidden');
+            if(this.callInterval) clearInterval(this.callInterval);
+        },
+        
+        changePin() {
+            const i = document.getElementById('new-pin-input');
+            if (i.value.length === 4 && !isNaN(i.value)) {
+                this.pin = i.value; localStorage.setItem('atenea_pin', i.value);
+                i.value = ""; document.getElementById('pin-msg').innerText = "Nuevo PIN activado";
+                setTimeout(() => document.getElementById('pin-msg').innerText = "", 2000);
+            }
+        }
+    };
+    App.init(); window.app = App;
+</script>
+</body>
+</html>
